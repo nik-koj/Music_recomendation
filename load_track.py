@@ -71,6 +71,6 @@ def process_track(file_path, output_dir, db_path, full_model, feature_model):
 if __name__ == "__main__":
     model_path = "best_model.keras"
     full_model, feature_model = load_models(model_path)
-    file_path = 'Dataset/fma_small/108464.mp3'  # Укажите корректный путь
+    file_path = 'Dataset/fma_small/108464.mp3'
     output_dir = 'Song_Spectrograms'
     process_track(file_path, output_dir, "music_features.db", full_model, feature_model)

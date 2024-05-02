@@ -9,6 +9,6 @@ def query_data(db_path="music_features.db"):
         print(row)
     conn.close()
 
-# Вызов функции для просмотра данных
+
 if __name__ == "__main__":
     query_data()

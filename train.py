@@ -60,7 +60,7 @@ early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weig
 history = model.fit(
     train_x,
     train_y,
-    epochs=100,  # Увеличил количество эпох для возможности ранней остановки
+    epochs=30,  # Увеличил количество эпох для возможности ранней остановки
     batch_size=32,
     verbose=1,
     validation_split=0.1,

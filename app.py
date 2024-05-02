@@ -13,69 +13,95 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QPushButton, QVBoxLayout, QL
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QCompleter
+from PyQt5.QtWidgets import QTabWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QFormLayout, QListWidget, QSizePolicy, QCompleter, QMessageBox
+from PyQt5.QtCore import QSize
 from PyQt5.QtCore import QStringListModel
 from PyQt5.QtCore import QThread, pyqtSignal
 from single_song_processor import create_and_slice_spectrogram
 from load_track import  load_models, process_track
 import logging
+from PyQt5.QtWidgets import QSlider
 
 
 class App(QWidget):
     def __init__(self):
         super().__init__()
-        self.title = 'Music Recommender System'
+        self.title = 'TrackRec'
         self.model_path = "best_model.keras"
         self.full_model, self.feature_model = load_models(self.model_path)
         self.initUI()
-        self.setup_autocomplete()  # Настройка автодополнения
+        self.setup_autocomplete()
 
     def initUI(self):
         self.setWindowTitle(self.title)
-        self.setGeometry(100, 100, 800, 600)  # Установка размеров окна
-        self.setStyleSheet("background-color: #282828; color: #E0E0E0; font-size: 14px;")
+        self.setGeometry(100, 100, 800, 600)
+        self.setStyleSheet("background-color: #202020; color: #E0E0E0; font-size: 14px;")
 
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        # Форма для ввода названия песни и выбора количества рекомендаций
         form_layout = QFormLayout()
         self.song_input = QLineEdit()
-        self.recommendations_count = QSpinBox()
+        self.song_input.setFixedHeight(35)
+
+        self.recommendations_count = QSlider(Qt.Horizontal)
         self.recommendations_count.setMinimum(1)
-        self.recommendations_count.setMaximum(10)
-        form_layout.addRow('Song name:', self.song_input)
-        form_layout.addRow('Number of recommendations:', self.recommendations_count)
+        self.recommendations_count.setMaximum(50)
+        self.recommendations_count.setTickPosition(QSlider.TicksBelow)
+        self.recommendations_count.setTickInterval(1)
+        self.recommendations_count.setSingleStep(1)
+
+        self.recommendations_label = QLabel('1')
+        self.recommendations_count.valueChanged.connect(self.update_label)
+
+        recommendations_layout = QHBoxLayout()
+        recommendations_layout.addWidget(self.recommendations_count)
+        recommendations_layout.addWidget(self.recommendations_label)
+
+        form_layout.addRow('Название песни:', self.song_input)
+        form_layout.addRow('Количество рекомендаций:', recommendations_layout)
         layout.addLayout(form_layout)
 
         # Кнопки
-        btn_recommend = QPushButton('Get Recommendations')
+        buttons_layout = QHBoxLayout()
+        btn_recommend = QPushButton('Подобрать треки')
+        btn_recommend.setFixedSize(200, 40)
         btn_recommend.clicked.connect(self.get_recommendations)
-        btn_recommend.setStyleSheet("background-color: #1DB954; color: #FFFFFF;")
-        layout.addWidget(btn_recommend)
+        btn_recommend.setStyleSheet("background-color: #1DB954; color: #FFFFFF; font-weight: bold;")
+        buttons_layout.addWidget(btn_recommend)
 
+        btn_load = QPushButton('Загрузить трек')
+        btn_load.setFixedSize(200, 40)
+        btn_load.clicked.connect(self.openFileNameDialog)
+        btn_load.setStyleSheet("background-color: #1DB954; color: #FFFFFF; font-weight: bold;")
+        buttons_layout.addWidget(btn_load)
+
+        btn_load_playlist = QPushButton('Загрузить Плейлист')
+        btn_load_playlist.setFixedSize(200, 40)
+        btn_load_playlist.clicked.connect(self.load_playlist)
+        btn_load_playlist.setStyleSheet("background-color: #1DB954; color: #FFFFFF; font-weight: bold;")
+        buttons_layout.addWidget(btn_load_playlist)
+
+        layout.addLayout(buttons_layout)
+
+        # Лист рекомендаций
         self.recommendations_list = QListWidget()
         layout.addWidget(self.recommendations_list)
-
-        btn_load = QPushButton('Load Song')
-        btn_load.clicked.connect(self.openFileNameDialog)
-        btn_load.setStyleSheet("background-color: #1DB954; color: #FFFFFF;")
-        layout.addWidget(btn_load)
 
         self.figure = plt.figure()
         self.canvas = FigureCanvas(self.figure)
         layout.addWidget(self.canvas)
         self.canvas.hide()
 
-        btn_load_playlist = QPushButton('Load Playlist')
-        btn_load_playlist.clicked.connect(self.load_playlist)
-        layout.addWidget(btn_load_playlist)
-
         self.show()
+
+    def update_label(self, value):
+        self.recommendations_label.setText(str(value))
 
 
     def openFileNameDialog(self):
         options = QFileDialog.Options()
-        fileName, _ = QFileDialog.getOpenFileName(self, "Select an audio file", "", "Audio Files (*.mp3 *.wav)",
+        fileName, _ = QFileDialog.getOpenFileName(self, "Выберите аудиофайл", "", "Audio Files (*.mp3 *.wav)",
                                                   options=options)
         if fileName:
             self.process_and_display_song(fileName)
@@ -90,7 +116,7 @@ class App(QWidget):
 
         # Отображение полученной информации
         self.song_input.setText(f"{title} - {artist}")
-        self.genre_label.setText(f"Predicted Genre: {genre_top}")
+        self.genre_label.setText(f"Жанр: {genre_top}")
 
         # Обновление списка доступных треков для автозаполнения
         self.setup_autocomplete()
@@ -98,7 +124,7 @@ class App(QWidget):
 
     def load_playlist(self):
         options = QFileDialog.Options()
-        fileName, _ = QFileDialog.getOpenFileName(self, "Select a playlist file", "", "Playlist Files (*.csv *.txt)",
+        fileName, _ = QFileDialog.getOpenFileName(self, "Выберите папку с треками", "", "Playlist Files (*.csv *.txt)",
                                                   options=options)
         if fileName:
             self.process_playlist(fileName)
@@ -137,7 +163,7 @@ class App(QWidget):
         cursor.execute("SELECT features FROM features WHERE title=?", (selected_track,))
         result = cursor.fetchone()
         if not result:
-            print("Track not found")
+            print("Трек не найден")
             return
 
         selected_features = np.array(result[0].split(','), dtype=float).reshape(1, -1)
@@ -162,7 +188,7 @@ class App(QWidget):
 
         self.recommendations_list.clear()
         for track in similarities[:top_n]:
-            self.recommendations_list.addItem(f"{track[0]} - {track[1]} - {track[2]} - Similarity: {track[3]:.10f}")
+            self.recommendations_list.addItem(f"{track[0]} - {track[1]} - {track[2]} - Сходство: {track[3]:.10f}")
 
         conn.close()
 

@@ -88,7 +88,6 @@ def extract_and_aggregate_features(verbose=0, mode=None, feature_model=None, db_
     return pd.DataFrame(aggregated_data)
 
 
-# Основной блок исполнения
 if __name__ == "__main__":
     create_database()
     model_path = "best_model.keras"  # Путь к сохраненной модели

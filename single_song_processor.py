@@ -49,7 +49,7 @@ def create_and_slice_spectrogram(file_path, output_dir='Song_Spectrograms', slic
         print(f"Failed to process {file_path}: {e}")
 
 
-# Пример использования
+
 if __name__ == '__main__':
-    file_path = 'Dataset/fma_small/108464.mp3'  # Замените на путь к вашему аудиофайлу
+    file_path = 'Dataset/fma_small/108464.mp3'
     create_and_slice_spectrogram(file_path)
