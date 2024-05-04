@@ -54,13 +54,13 @@ model.summary()
 
 # Callbacks
 checkpoint = ModelCheckpoint('best_model.keras', monitor='val_accuracy', save_best_only=True, mode='max')
-early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True, verbose=1)
+early_stopping = EarlyStopping(monitor='val_loss', patience=8, restore_best_weights=True, verbose=1)
 
 # Обучение
 history = model.fit(
     train_x,
     train_y,
-    epochs=30,  # Увеличил количество эпох для возможности ранней остановки
+    epochs=50,  # Увеличил количество эпох для возможности ранней остановки
     batch_size=32,
     verbose=1,
     validation_split=0.1,
@@ -69,13 +69,15 @@ history = model.fit(
 
 train_history = pd.DataFrame(history.history)
 train_history.to_csv("training_history.csv")
-
+try:
+    save_genre_mapping()
+except Exception as e:
+    print(f"Failed to process: {e}")
 # Оценка
 score = model.evaluate(test_x, test_y)
 print("Test accuracy:", score[1])
 
 
 # Сохранение и визуализация архитектуры
-save_genre_mapping(label_encoder)
 model.save("Saved_Model/Model.keras")
 plot_model(model, to_file="Model_Architecture.png")

@@ -8,6 +8,8 @@ from single_song_processor import create_and_slice_spectrogram
 import sqlite3
 import numpy as np
 import json
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 
 def load_genre_mapping(genre_file='genres.json'):
@@ -60,17 +62,24 @@ def predict_genre_and_features(slices_dir, full_model, feature_model, genre_mapp
 
 
 def process_track(file_path, output_dir, db_path, full_model, feature_model):
-    title, artist = parse_filename(file_path)
-    genre_mapping = load_genre_mapping()  # Загрузка маппинга жанров
-    create_and_slice_spectrogram(file_path, output_dir)
-    genre_top, features = predict_genre_and_features(output_dir, full_model, feature_model, genre_mapping)
-    insert_track_data(title, artist, genre_top, features, db_path)
+    logging.debug("Starting track processing.")
+    try:
+        title, artist = parse_filename(file_path)
+        logging.debug(f"Parsed filename: {title}, {artist}")
+        genre_mapping = load_genre_mapping()
+        create_and_slice_spectrogram(file_path, output_dir)
+        genre_top, features = predict_genre_and_features(output_dir, full_model, feature_model, genre_mapping)
+        insert_track_data(title, artist, genre_top, features, db_path)
+        return title, artist, genre_top, features
+    except Exception as e:
+        logging.error(f"Error processing track: {e}")
+        return "Error", "Error", "Error", []
 
 
 # Основной блок исполнения
 if __name__ == "__main__":
     model_path = "best_model.keras"
     full_model, feature_model = load_models(model_path)
-    file_path = 'Dataset/fma_small/108464.mp3'
+    file_path = 'Dataset/fma_small/000194.mp3'
     output_dir = 'Song_Spectrograms'
     process_track(file_path, output_dir, "music_features.db", full_model, feature_model)

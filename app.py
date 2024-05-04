@@ -20,6 +20,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from single_song_processor import create_and_slice_spectrogram
 from load_track import  load_models, process_track
 import logging
+import shutil
 from PyQt5.QtWidgets import QSlider
 
 
@@ -106,18 +107,35 @@ class App(QWidget):
         if fileName:
             self.process_and_display_song(fileName)
 
+    def clear_directory(self, directory):
+        for filename in os.listdir(directory):
+            file_path = os.path.join(directory, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print(f'Failed to delete {file_path}. Reason: {e}')
+
+
     def process_and_display_song(self, file_path):
         output_dir = 'Song_Spectrograms'
         db_path = "music_features.db"
 
-        # Обработка трека и получение жанра
+        # Обработка трека и получение информации
         title, artist, genre_top, features = process_track(file_path, output_dir, db_path, self.full_model,
                                                            self.feature_model)
 
         # Отображение полученной информации
         self.song_input.setText(f"{title} - {artist}")
-        self.genre_label.setText(f"Жанр: {genre_top}")
 
+        # Вывод жанра во всплывающем окне с форматированием текста
+        QMessageBox.information(self, "Предсказанный Жанр",
+                                f"Преобладающий жанр в треке {title} - {artist}: {genre_top}")
+
+        # Очистка директории Song_Spectrograms
+        self.clear_directory(output_dir)
         # Обновление списка доступных треков для автозаполнения
         self.setup_autocomplete()
 

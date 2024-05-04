@@ -6,6 +6,9 @@ from PIL import Image
 
 
 def create_and_slice_spectrogram(file_path, output_dir='Song_Spectrograms', slice_size=128):
+    plt.cla()  # Очистка текущих осей
+    plt.clf()  # Очистка текущей фигуры
+    plt.close('all')  # Закрыть все фигуры
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
