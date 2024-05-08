@@ -12,10 +12,6 @@ import pandas as pd
 import json
 
 
-def save_genre_mapping(label_encoder, filename='genre_mapping.json'):
-    genre_mapping = {index: label for index, label in enumerate(label_encoder.classes_)}
-    with open(filename, 'w') as f:
-        json.dump(genre_mapping, f)
 
 # Загрузка и подготовка данных
 train_x, train_y, test_x, test_y, n_classes, genre = load_dataset(verbose=1, mode="Train", datasetSize=0.75)
@@ -69,10 +65,7 @@ history = model.fit(
 
 train_history = pd.DataFrame(history.history)
 train_history.to_csv("training_history.csv")
-try:
-    save_genre_mapping()
-except Exception as e:
-    print(f"Failed to process: {e}")
+
 # Оценка
 score = model.evaluate(test_x, test_y)
 print("Test accuracy:", score[1])

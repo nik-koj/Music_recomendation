@@ -22,7 +22,8 @@ def create_database(db_path="music_features.db"):
             title TEXT,
             artist TEXT,
             genre_top TEXT,
-            features TEXT
+            features TEXT,
+            file_path TEXT
         )
     ''')
     conn.commit()
@@ -34,9 +35,9 @@ def insert_data(data, db_path="music_features.db"):
     cursor = conn.cursor()
     for index, row in data.iterrows():
         cursor.execute('''
-            INSERT INTO features (title, artist, genre_top, features)
-            VALUES (?, ?, ?, ?)
-        ''', (row['title'], row['artist'], row['genre_top'], ','.join(map(str, row['features']))))
+            INSERT INTO features (title, artist, genre_top, features, file_path)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (row['title'], row['artist'], row['genre_top'], ','.join(map(str, row['features'])), row['file_path']))
     conn.commit()
     conn.close()
 
@@ -55,16 +56,18 @@ def extract_and_aggregate_features(verbose=0, mode=None, feature_model=None, db_
             track_id = int(parts[0])
             if track_id not in features_dict:
                 track_info = tracks.loc[track_id]
+                file_path = os.path.join('Dataset', 'fma_small', f'{str(track_id).zfill(6)}.mp3')  # Правильный путь
                 features_dict[track_id] = {
                     'title': track_info[('track', 'title')],
                     'artist': track_info[('artist', 'name')],
                     'genre_top': track_info[('track', 'genre_top')],
-                    'features': []
+                    'features': [],
+                    'file_path': file_path
                 }
 
             img = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
             img = np.expand_dims(img, axis=-1)
-            img = np.expand_dims(img, axis=0) / 255.0  # Нормализация и добавление размерности для модели
+            img = np.expand_dims(img, axis=0) / 255.0
             features = feature_model.predict(img)[0]
             features_dict[track_id]['features'].append(features)
 
@@ -80,9 +83,9 @@ def extract_and_aggregate_features(verbose=0, mode=None, feature_model=None, db_
         aggregated_data.append({
             'title': info['title'],
             'artist': info['artist'],
-
             'genre_top': info['genre_top'],
-            'features': avg_features.tolist()
+            'features': avg_features.tolist(),
+            'file_path': info['file_path']  # Убедитесь, что используется правильный путь
         })
 
     return pd.DataFrame(aggregated_data)
@@ -92,5 +95,5 @@ if __name__ == "__main__":
     create_database()
     model_path = "best_model.keras"  # Путь к сохраненной модели
     feature_model = load_feature_extraction_model(model_path)
-    feature_data = extract_and_aggregate_features(verbose=1, mode='Test', feature_model=feature_model)
+    feature_data = extract_and_aggregate_features(verbose=1, mode='Train', feature_model=feature_model)
     insert_data(feature_data)

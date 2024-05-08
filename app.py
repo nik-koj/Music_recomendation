@@ -18,10 +18,12 @@ from PyQt5.QtCore import QSize
 from PyQt5.QtCore import QStringListModel
 from PyQt5.QtCore import QThread, pyqtSignal
 from single_song_processor import create_and_slice_spectrogram
-from load_track import  load_models, process_track
+from load_track import load_models, process_track
 import logging
 import shutil
 from PyQt5.QtWidgets import QSlider
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+from PyQt5.QtCore import QUrl
 
 
 class App(QWidget):
@@ -30,8 +32,12 @@ class App(QWidget):
         self.title = 'TrackRec'
         self.model_path = "best_model.keras"
         self.full_model, self.feature_model = load_models(self.model_path)
+        self.player = QMediaPlayer()
         self.initUI()
         self.setup_autocomplete()
+        self.player.stateChanged.connect(self.update_play_button)
+        self.player.positionChanged.connect(self.update_slider_position)
+        self.player.durationChanged.connect(self.update_slider_range)
 
     def initUI(self):
         self.setWindowTitle(self.title)
@@ -87,6 +93,7 @@ class App(QWidget):
 
         # Лист рекомендаций
         self.recommendations_list = QListWidget()
+        self.recommendations_list.itemDoubleClicked.connect(self.play_selected_track)
         layout.addWidget(self.recommendations_list)
 
         self.figure = plt.figure()
@@ -94,10 +101,96 @@ class App(QWidget):
         layout.addWidget(self.canvas)
         self.canvas.hide()
 
+        self.currentTrackLabel = QLabel("Сейчас играет: ")
+        layout.addWidget(self.currentTrackLabel)
+
+        #Плеер
+        controls = QHBoxLayout()
+
+        self.playButton = QPushButton()
+        self.playButton.setIcon(QIcon('icons/play.png'))
+        self.playButton.setIconSize(QSize(30, 30))
+        self.playButton.clicked.connect(self.toggle_play)
+        controls.addWidget(self.playButton)
+
+
+        # Slider for track progress
+        #sliderLayout = QHBoxLayout()
+        self.currentTimeLabel = QLabel("00:00")
+        self.totalTimeLabel = QLabel("00:00")
+        self.trackSlider = QSlider(Qt.Horizontal)
+        self.trackSlider.sliderMoved.connect(self.set_position)
+        controls.addWidget(self.currentTimeLabel)
+        controls.addWidget(self.trackSlider)
+        controls.addWidget(self.totalTimeLabel)
+        #layout.addLayout(sliderLayout)
+        layout.addLayout(controls)
+
+
+
+
         self.show()
 
     def update_label(self, value):
         self.recommendations_label.setText(str(value))
+
+    def play_selected_track(self, item):
+        track_info = item.text()
+        title = track_info.split(" - ")[0]
+        self.load_and_play(title)
+
+    def load_and_play(self, title):
+        conn = sqlite3.connect("music_features.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT file_path FROM features WHERE title=?", (title,))
+        result = cursor.fetchone()
+        conn.close()
+        if result:
+            file_path = result[0]
+            self.currentTrackLabel.setText(f"Current track: {title}")
+            self.play_music(file_path)
+        else:
+            QMessageBox.warning(self, "Playback Error", "Could not find the track in the database.")
+
+
+    def play_music(self, file_path):
+        url = QUrl.fromLocalFile(file_path)
+        content = QMediaContent(url)
+        self.player.setMedia(content)
+        self.player.play()
+
+
+    def toggle_play(self):
+        if self.player.state() == QMediaPlayer.PlayingState:
+            self.player.pause()
+        else:
+            if self.player.mediaStatus() == QMediaPlayer.NoMedia and self.song_input.text():
+                self.load_and_play(self.song_input.text())
+            else:
+                self.player.play()
+
+    def update_play_button(self, state):
+        if state == QMediaPlayer.PlayingState:
+            self.playButton.setIcon(QIcon('icons/pause.png'))
+        else:
+            self.playButton.setIcon(QIcon('icons/play.png'))
+
+    def update_slider_position(self, position):
+        self.trackSlider.setValue(position)
+        self.currentTimeLabel.setText(self.format_time(position))
+
+    def update_slider_range(self, duration):
+        self.trackSlider.setRange(0, duration)
+        self.totalTimeLabel.setText(self.format_time(duration))
+
+    def set_position(self, position):
+        self.player.setPosition(position)
+
+    def format_time(self, ms):
+        seconds = round(ms / 1000)
+        minutes = seconds // 60
+        seconds = seconds % 60
+        return f"{minutes:02}:{seconds:02}"
 
 
     def openFileNameDialog(self):
@@ -106,6 +199,7 @@ class App(QWidget):
                                                   options=options)
         if fileName:
             self.process_and_display_song(fileName)
+            self.play_music(fileName)
 
     def clear_directory(self, directory):
         for filename in os.listdir(directory):
@@ -141,18 +235,26 @@ class App(QWidget):
 
 
     def load_playlist(self):
-        options = QFileDialog.Options()
-        fileName, _ = QFileDialog.getOpenFileName(self, "Выберите папку с треками", "", "Playlist Files (*.csv *.txt)",
-                                                  options=options)
-        if fileName:
-            self.process_playlist(fileName)
+        # Выбор директории с музыкальными файлами
+        directory = QFileDialog.getExistingDirectory(self, "Выберите папку с треками")
+        if directory:
+            self.process_directory(directory)
 
-    def process_playlist(self, file_path):
-        with open(file_path, 'r') as file:
-            tracks = file.readlines()
-            # Обработка треков плейлиста
-            for track in tracks:
-                print(track.strip())  # Пример вывода пути к треку
+    def process_directory(self, directory):
+        # Список для сбора информации о загруженных треках
+        processed_tracks_info = []
+        for filename in os.listdir(directory):
+            if filename.endswith('.mp3'):
+                file_path = os.path.join(directory, filename)
+                title, artist, genre_top, features = process_track(file_path, 'Song_Spectrograms', 'music_features.db',
+                                                                   self.full_model, self.feature_model)
+                # Собираем информацию о каждом треке
+                processed_tracks_info.append(f"{title} - {artist}: Жанр - {genre_top}")
+                # Очистка директории
+                self.clear_directory('Song_Spectrograms')
+
+        # Показываем информационное сообщение с результатами обработки
+        QMessageBox.information(self, "Обработка завершена", "\n".join(processed_tracks_info))
 
 
 
@@ -176,6 +278,7 @@ class App(QWidget):
 
     def get_recommendations(self):
         selected_track = self.song_input.text().split(" - ")[0]
+        self.load_and_play(selected_track)
         conn = sqlite3.connect("music_features.db")
         cursor = conn.cursor()
         cursor.execute("SELECT features FROM features WHERE title=?", (selected_track,))

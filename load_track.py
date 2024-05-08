@@ -12,7 +12,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 
-def load_genre_mapping(genre_file='genres.json'):
+def load_genre_mapping(genre_file='genre_mapping.json'):
     with open(genre_file, 'r') as file:
         genre_mapping = json.load(file)
     return genre_mapping
@@ -30,13 +30,13 @@ def parse_filename(file_path):
     artist = parts[1].strip() if len(parts) > 1 else 'Unknown Artist'
     return title, artist
 
-def insert_track_data(title, artist, genre_top, features, db_path="music_features.db"):
+def insert_track_data(title, artist, genre_top, features, file_path, db_path="music_features.db"):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO features (title, artist, genre_top, features)
-        VALUES (?, ?, ?, ?)
-    ''', (title, artist, genre_top, ','.join(map(str, features))))
+        INSERT INTO features (title, artist, genre_top, features, file_path)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (title, artist, genre_top, ','.join(map(str, features)), file_path))
     conn.commit()
     conn.close()
 def predict_genre_and_features(slices_dir, full_model, feature_model, genre_mapping):
@@ -69,7 +69,7 @@ def process_track(file_path, output_dir, db_path, full_model, feature_model):
         genre_mapping = load_genre_mapping()
         create_and_slice_spectrogram(file_path, output_dir)
         genre_top, features = predict_genre_and_features(output_dir, full_model, feature_model, genre_mapping)
-        insert_track_data(title, artist, genre_top, features, db_path)
+        insert_track_data(title, artist, genre_top, features, file_path, db_path)
         return title, artist, genre_top, features
     except Exception as e:
         logging.error(f"Error processing track: {e}")
@@ -80,6 +80,6 @@ def process_track(file_path, output_dir, db_path, full_model, feature_model):
 if __name__ == "__main__":
     model_path = "best_model.keras"
     full_model, feature_model = load_models(model_path)
-    file_path = 'Dataset/fma_small/000194.mp3'
+    file_path = 'Dataset/fma_small/Rammstein_-_Sonne_57658982.mp3'
     output_dir = 'Song_Spectrograms'
     process_track(file_path, output_dir, "music_features.db", full_model, feature_model)

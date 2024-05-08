@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 from keras.utils import to_categorical
+import json
 
 def load_dataset(verbose=0, mode=None, datasetSize=1.0):
     path = "Train_Sliced_Images" if mode == "Train" else "Test_Sliced_Images"
@@ -50,6 +51,9 @@ def load_dataset(verbose=0, mode=None, datasetSize=1.0):
         labels = label_encoder.fit_transform(labels)
         labels = to_categorical(labels)
         n_classes = labels.shape[1]
+        genre_mapping = dict(zip(label_encoder.classes_, range(len(label_encoder.classes_))))
+        with open("genre_mapping.json", "w") as f:
+            json.dump(genre_mapping, f, indent=4)
     else:
         n_classes = 0
 
@@ -58,4 +62,6 @@ def load_dataset(verbose=0, mode=None, datasetSize=1.0):
         return train_x, train_y, test_x, test_y, n_classes, label_encoder.classes_
     else:
         return images, labels, n_classes, label_encoder.classes_
+
+
 
