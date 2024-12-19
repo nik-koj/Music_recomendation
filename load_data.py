@@ -52,7 +52,7 @@ def load_dataset(verbose=0, mode=None, datasetSize=1.0):
         labels = to_categorical(labels)
         n_classes = labels.shape[1]
         genre_mapping = dict(zip(label_encoder.classes_, range(len(label_encoder.classes_))))
-        with open("genre_mapping.json", "w") as f:
+        with open("genres.json", "w") as f:
             json.dump(genre_mapping, f, indent=4)
     else:
         n_classes = 0

@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def load_genre_mapping(genre_file='genre_mapping.json'):
-    with open(genre_file, 'r') as file:
+    with open(genre_file, 'r', encoding='utf-8') as file:
         genre_mapping = json.load(file)
     return genre_mapping
 
@@ -27,7 +27,7 @@ def parse_filename(file_path):
     base_name = os.path.splitext(os.path.basename(file_path))[0]
     parts = base_name.split('-')
     title = parts[0].strip()
-    artist = parts[1].strip() if len(parts) > 1 else 'Unknown Artist'
+    artist = parts[1].strip() if len(parts) > 1 else 'Неизвестный автор'
     return title, artist
 
 def insert_track_data(title, artist, genre_top, features, file_path, db_path="music_features.db"):

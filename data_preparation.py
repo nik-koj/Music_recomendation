@@ -58,10 +58,9 @@ def slice_spect(verbose=0, mode=None, slice_size=128):
     for filename in filenames:
         img = Image.open(filename)
         width, height = img.size
-
         for i in range(0, width, slice_size):
             for j in range(0, height, slice_size):
-                if i + slice_size <= width and j + slice_size <= height:  # Убедиться, что срез не выходит за границы изображения
+                if i + slice_size <= width and j + slice_size <= height:
                     img_cropped = img.crop((i, j, i + slice_size, j + slice_size))
                     output_filename = os.path.join(output_dir, f"{os.path.basename(filename).replace('.jpg', '')}_{i//slice_size}_{j//slice_size}.jpg")
                     img_cropped.save(output_filename)

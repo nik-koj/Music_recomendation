@@ -53,7 +53,7 @@ class App(QWidget):
 
         self.recommendations_count = QSlider(Qt.Horizontal)
         self.recommendations_count.setMinimum(1)
-        self.recommendations_count.setMaximum(50)
+        self.recommendations_count.setMaximum(500)
         self.recommendations_count.setTickPosition(QSlider.TicksBelow)
         self.recommendations_count.setTickInterval(1)
         self.recommendations_count.setSingleStep(1)
@@ -147,7 +147,7 @@ class App(QWidget):
         conn.close()
         if result:
             file_path = result[0]
-            self.currentTrackLabel.setText(f"Current track: {title}")
+            self.currentTrackLabel.setText(f"Сейчас играет: {title}")
             self.play_music(file_path)
         else:
             QMessageBox.warning(self, "Playback Error", "Could not find the track in the database.")
@@ -199,7 +199,8 @@ class App(QWidget):
                                                   options=options)
         if fileName:
             self.process_and_display_song(fileName)
-            self.play_music(fileName)
+            self.setup_autocomplete()
+            #self.play_music(fileName)
 
     def clear_directory(self, directory):
         for filename in os.listdir(directory):
@@ -255,6 +256,7 @@ class App(QWidget):
 
         # Показываем информационное сообщение с результатами обработки
         QMessageBox.information(self, "Обработка завершена", "\n".join(processed_tracks_info))
+        self.setup_autocomplete()
 
 
 

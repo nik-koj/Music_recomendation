@@ -7,6 +7,16 @@ from keras.models import Model
 import sqlite3
 import numpy as np
 
+genre_translation = {
+    "Electronic": "Электронный",
+    "Experimental": "Экспериментальный",
+    "Folk": "Фолк",
+    "Hip-Hop": "Хип-хоп",
+    "Instrumental": "Инструментальный",
+    "International": "Международный",
+    "Pop": "Поп",
+    "Rock": "Рок"
+}
 
 def load_feature_extraction_model(model_path):
     model = load_model(model_path)
@@ -57,10 +67,12 @@ def extract_and_aggregate_features(verbose=0, mode=None, feature_model=None, db_
             if track_id not in features_dict:
                 track_info = tracks.loc[track_id]
                 file_path = os.path.join('Dataset', 'fma_small', f'{str(track_id).zfill(6)}.mp3')  # Правильный путь
+                genre_top = track_info[('track', 'genre_top')]
+                genre_top_ru = genre_translation.get(genre_top, genre_top)
                 features_dict[track_id] = {
                     'title': track_info[('track', 'title')],
                     'artist': track_info[('artist', 'name')],
-                    'genre_top': track_info[('track', 'genre_top')],
+                    'genre_top': genre_top_ru,
                     'features': [],
                     'file_path': file_path
                 }

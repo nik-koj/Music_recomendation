@@ -14,7 +14,7 @@ import json
 
 
 # Загрузка и подготовка данных
-train_x, train_y, test_x, test_y, n_classes, genre = load_dataset(verbose=1, mode="Train", datasetSize=0.75)
+train_x, train_y, test_x, test_y, n_classes, genre = load_dataset(verbose=1, mode="Train", datasetSize=0.8)
 train_x = train_x.reshape(train_x.shape[0], train_x.shape[1], train_x.shape[2], 1) / 255.0
 test_x = test_x.reshape(test_x.shape[0], test_x.shape[1], test_x.shape[2], 1) / 255.0
 
@@ -50,7 +50,7 @@ model.summary()
 
 # Callbacks
 checkpoint = ModelCheckpoint('best_model.keras', monitor='val_accuracy', save_best_only=True, mode='max')
-early_stopping = EarlyStopping(monitor='val_loss', patience=8, restore_best_weights=True, verbose=1)
+early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True, verbose=1)
 
 # Обучение
 history = model.fit(
